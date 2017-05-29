@@ -13,7 +13,7 @@
 
 
 #define DEBUG 0
-#define BUFFSIZE 10000
+#define BUFFSIZE 1000000
 #define HOSTSIZE 800
 #define TYPE 16               
 

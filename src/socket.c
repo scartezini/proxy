@@ -63,7 +63,7 @@ void *start_thread(void *arg){
 
 
 void start(int connfd){
-	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE];
+	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE], response[BUFFSIZE];
 	char method[9], version[10], ip[16];
 	int status, filter, n;
 
@@ -74,17 +74,11 @@ void start(int connfd){
 
 	buffer[n] = '\0';
   
-	//TODO lo
-  	printf("%s\n", buffer);
+  	//printf("%s\n", buffer);
+	//TODO log
 	status = decodeHTTP(buffer,path,method,version,host);
 	filter = filterProxy(buffer,path,method,version,host);
 	
-	if(dnsResolve(host,ip))
-		return;
-
-#if DEBUG == 1
-	printf("host: %s\nip: %s\n",host,ip);
-#endif
 
 
 	switch(filter){
@@ -95,7 +89,7 @@ void start(int connfd){
 		case 3: // deny_terms
 			break;
 		default: // pass
-			request(buffer,ip);	
+			request(buffer,host,response,connfd);	
 		 	break;		
 	}
 	
@@ -103,11 +97,57 @@ void start(int connfd){
 }
 
 
-char *request(char* buffer,char* ip){
-
+int request(char* buffer,char* host, char * response,int clientfd){
+	int servfd;
+	char buf[100];
 	
+	if((servfd = establishConnection(getHostInfo(host))) == -1){
+		printf("Error\n");
+		return -1;
+	}
+	
+	//char req[1000];
+	//strcpy(req,"GET / HTTP/1.1\r\nHost: www.unb.br\r\n\r\n");
+	if(send(servfd, buffer, strlen(buffer),0) < 0){
+		printf("Error\n");
+		return -1;
+	}
+	
+	memset(response,0,BUFFSIZE);
+	
+	recv_timeout(servfd,4,response, clientfd);
 
+	close(servfd);
 }
+
+
+int establishConnection(struct addrinfo *info){
+	if(info == NULL){
+		return -1; 
+	}
+
+  	int clientfd;
+
+	for(;info != NULL;info = info->ai_next){
+		if((clientfd = socket(info ->ai_family,
+							info->ai_socktype,
+							info->ai_protocol)) < 0){
+			continue;
+		}
+		
+		if(connect(clientfd, info->ai_addr, info->ai_addrlen) < 0){
+			continue;
+		}
+
+		freeaddrinfo(info);
+		return clientfd;
+	}
+
+
+	freeaddrinfo(info);
+	return -1;
+}
+
 
 int dnsResolve(char* host,char* ip){
   
@@ -131,6 +171,65 @@ int dnsResolve(char* host,char* ip){
      
     return 0;
 }
+
+
+struct addrinfo *getHostInfo(char *host){
+	int r;
+	struct addrinfo hints, *host_addrinfo;
+
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	if((r = getaddrinfo(host,"80",&hints,&host_addrinfo))){
+		return NULL;
+	}
+	
+	return host_addrinfo;
+}
+
+
+int recv_timeout(int sockfd, int timeout, char *response,int clientfd){
+	int size_recv, total_size = 0;
+	struct timeval begin, now;
+	char chunk[CHUNK_SIZE];
+	double timediff;
+
+	//make socket non bloking 
+	fcntl(sockfd, F_SETFL, O_NONBLOCK);
+
+	gettimeofday(&begin, NULL);
+	memset(response,'\0',BUFFSIZE);
+	
+	while(1){
+		gettimeofday(&now, NULL);
+
+		timediff = (now.tv_sec - begin.tv_sec) + 1e-6 * (now.tv_usec - begin.tv_usec);
+		
+		if(total_size > 0 && timediff > timeout)
+			break;
+		else if(timediff > timeout*2)
+		   break;	
+
+		memset(chunk, 0, CHUNK_SIZE);
+		if((size_recv = recv(sockfd, chunk, CHUNK_SIZE,0)) < 0)
+			usleep(100000);
+		else{
+			total_size += size_recv;
+	//		printf("%s",chunk);
+			//strcat(response,chunk);
+			//printf("%s",chunk);
+			if(send(clientfd,chunk,strlen(chunk),0) < 0)
+				break;
+			gettimeofday(&begin, NULL);
+		}
+	}
+
+	return total_size;
+
+
+}
+
 
 
 

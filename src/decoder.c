@@ -20,6 +20,20 @@ int decodeHTTP(char *buffer,char *path,char *method, char *version, char *host){
 		host[k] = buffer[i];
 	host[k] = '\0';
 
+	//remove Accept-Encoding
+	char *pch, pch_c[BUFFSIZE];
+	int leng_line;
+
+	pch = strstr(buffer,"Accept-Encoding");
+	if(pch != NULL){
+		strcpy(pch_c,pch);
+		for(leng_line = 0; pch_c[leng_line] != '\n'; ++leng_line){}
+	
+		for(k = leng_line+1, l = 0; pch[k] != '\0' ; k++, l++ )
+			pch[l] = pch[k];
+		pch[l] = '\0';
+	}
+
 	int length;
 	length = strlen(method)+strlen(path)+strlen(version)+2;
 	
@@ -45,7 +59,7 @@ int decodeHTTP(char *buffer,char *path,char *method, char *version, char *host){
 	  newBuffer[l] = buffer[k];
 	newBuffer[l] = '\0';
 
-	buffer = newBuffer;
+	strcpy(buffer,newBuffer);
 
 #if DEBUG == 1
 	printf("method: %s\n",method);

@@ -2,7 +2,7 @@
 #include "../include/socket.h"
 
 
-#define MAXPENDING 5             
+#define MAXPENDING 9             
 
 int main(int argc, char *argv[]){
 
