@@ -16,7 +16,9 @@
 #define BUFFSIZE 1000000
 #define HOSTSIZE 800
 #define TYPE 16               
-
+#define WHITE_LIST "../resources/whitelist.txt"
+#define BLACK_LIST "../resources/blacklist.txt"
+#define DENY_TERMS "../resources/deny_terms.txt"
 
 int decodeHTTP(char *buffer,char *path,char *type,char *method, char *version);
 int filterProxy(char *buffer,char *path,char *method, char *version, char *host);
