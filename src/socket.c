@@ -67,15 +67,17 @@ void start(int connfd){
 	char method[9], version[10], ip[16];
 	int status, filter, n;
 
+	memset(buffer,'\0',BUFFSIZE);
 	if((n = recv(connfd,buffer,BUFFSIZE,0)) < 0){
 		printf("Failed in receiveri\n");
 		exit(-2);
 	}
 
-	buffer[n] = '\0';
+	//buffer[n] = '\0';
   
   	//printf("%s\n", buffer);
 	//TODO log
+	printf("%s",buffer);
 	status = decodeHTTP(buffer,path,method,version,host);
 	filter = filterProxy(buffer,path,method,version,host);
 	
@@ -102,7 +104,7 @@ int request(char* buffer,char* host, char * response,int clientfd){
 	char buf[100];
 	
 	if((servfd = establishConnection(getHostInfo(host))) == -1){
-		printf("Error\n");
+		printf("Failed in establishConnection\n");
 		return -1;
 	}
 	
@@ -115,8 +117,13 @@ int request(char* buffer,char* host, char * response,int clientfd){
 	
 	memset(response,0,BUFFSIZE);
 	
-	recv_timeout(servfd,4,response, clientfd);
-
+	int size = recv_timeout(servfd,4,response, clientfd);
+	printf("Recebeu\n");
+	if(send(clientfd,response,strlen(response),0) < 0){
+		printf("Error\n");
+		return -1;
+	}
+	printf("%d",size);
 	close(servfd);
 }
 
@@ -197,6 +204,7 @@ int recv_timeout(int sockfd, int timeout, char *response,int clientfd){
 
 	//make socket non bloking 
 	fcntl(sockfd, F_SETFL, O_NONBLOCK);
+//	fcntl(clientfd, F_SETFL, O_NONBLOCK);
 
 	gettimeofday(&begin, NULL);
 	memset(response,'\0',BUFFSIZE);
@@ -211,20 +219,22 @@ int recv_timeout(int sockfd, int timeout, char *response,int clientfd){
 		else if(timediff > timeout*2)
 		   break;	
 
-		memset(chunk, 0, CHUNK_SIZE);
-		if((size_recv = recv(sockfd, chunk, CHUNK_SIZE,0)) < 0)
+		memset(chunk, '\0', CHUNK_SIZE);
+		if((size_recv = recv(sockfd, chunk, CHUNK_SIZE,0)) <= 0)
 			usleep(100000);
 		else{
 			total_size += size_recv;
-	//		printf("%s",chunk);
-			//strcat(response,chunk);
 			//printf("%s",chunk);
-			if(send(clientfd,chunk,strlen(chunk),0) < 0)
-				break;
+			strcat(response,chunk);
+	//		printf("%s",chunk);
+		//	send(clientfd,chunk,strlen(chunk),0);
+		//	usleep(1000);
 			gettimeofday(&begin, NULL);
+			printf("chunk %d\n",size_recv);
 		}
 	}
-
+	
+	printf("Saiu recv\n");
 	return total_size;
 
 
