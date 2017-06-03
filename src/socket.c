@@ -69,37 +69,34 @@ void start(int connfd){
 
 	memset(buffer,'\0',BUFFSIZE);
 	if((n = recv(connfd,buffer,BUFFSIZE,0)) < 0){
-		printf("Failed in receiveri\n");
+		printf("Failed in receiver\n");
 		exit(-2);
 	}
 
-	//buffer[n] = '\0';
-  
-  	//printf("%s\n", buffer);
-	//TODO log
 	printf("%s",buffer);
 	status = decodeHTTP(buffer,path,method,version,host);
-	filter = filterProxy(buffer,path,method,version,host);
+	filter = filterHost(host);
 	
-
-
-	switch(filter){
-		case 1: // whitelist
-			break;
-		case 2: // blacklist
-			break;
-		case 3: // deny_terms
-			break;
-		default: // pass
-			request(buffer,host,response,connfd);	
-		 	break;		
+	if(filter == -1)
+		makeHTTP(response,500);
+	else if(filter == 2){
+		makeHTTP(response,401);
+	}else{
+		request(buffer,host,response);	
+		if(filter != 1){
+			if(filterTerms(response))
+				makeHTTP(response,403);
+		}
 	}
 	
+
+	send(connfd,response,strlen(response),0);
+
 	
 }
 
 
-int request(char* buffer,char* host, char * response,int clientfd){
+int request(char* buffer,char* host, char * response){
 	int servfd;
 	char buf[100];
 	
@@ -116,14 +113,7 @@ int request(char* buffer,char* host, char * response,int clientfd){
 	}
 	
 	memset(response,0,BUFFSIZE);
-	
-	int size = recv_timeout(servfd,4,response, clientfd);
-	printf("Recebeu\n");
-	if(send(clientfd,response,strlen(response),0) < 0){
-		printf("Error\n");
-		return -1;
-	}
-	printf("%d",size);
+	int size = recv_timeout(servfd,4,response);
 	close(servfd);
 }
 
@@ -196,7 +186,7 @@ struct addrinfo *getHostInfo(char *host){
 }
 
 
-int recv_timeout(int sockfd, int timeout, char *response,int clientfd){
+int recv_timeout(int sockfd, int timeout, char *response){
 	int size_recv, total_size = 0;
 	struct timeval begin, now;
 	char chunk[CHUNK_SIZE];
@@ -224,17 +214,12 @@ int recv_timeout(int sockfd, int timeout, char *response,int clientfd){
 			usleep(100000);
 		else{
 			total_size += size_recv;
-			//printf("%s",chunk);
 			strcat(response,chunk);
-	//		printf("%s",chunk);
-		//	send(clientfd,chunk,strlen(chunk),0);
-		//	usleep(1000);
 			gettimeofday(&begin, NULL);
-			printf("chunk %d\n",size_recv);
+			//printf("chunk %d\n",size_recv);
 		}
 	}
 	
-	printf("Saiu recv\n");
 	return total_size;
 
 

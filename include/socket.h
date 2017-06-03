@@ -31,12 +31,12 @@ void *start_thread(void *arg);
 
 void start(int connfd);
 
-int request(char* buffer,char* host, char* response, int clientfd);
+int request(char* buffer,char* host, char* response);
 int dnsResolve(char* host,char* ip);
 
 int establishConnection(struct addrinfo *info);
 struct addrinfo * getHostInfo(char *host);
 
-int recv_timeout(int sockfd, int timeout, char *response, int clientfd);
+int recv_timeout(int sockfd, int timeout, char *response);
 
 

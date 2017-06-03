@@ -11,14 +11,14 @@
 #include <sys/stat.h>       /* lstat() */
 #include <sys/types.h>      /* mode_t */
 
-
+#define HUE 1
 #define DEBUG 0
 #define BUFFSIZE 1000000
 #define HOSTSIZE 800
 #define TYPE 16               
-#define WHITE_LIST "../resources/whitelist.txt"
-#define BLACK_LIST "../resources/blacklist.txt"
-#define DENY_TERMS "../resources/deny_terms.txt"
+
 
 int decodeHTTP(char *buffer,char *path,char *type,char *method, char *version);
-int filterProxy(char *buffer,char *path,char *method, char *version, char *host);
+int filterHost(char *host);
+int filterTerms(char *buffer);
+int makeHTTP(char *response, int cod);

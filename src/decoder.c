@@ -82,26 +82,24 @@ int decodeHTTP(char *buffer,char *path,char *method, char *version, char *host){
 }
 
 
-int searchList(char *path,char *buffer)
-{
 
+int filterHost(char *host){
+	 
     // Procurar na Whitelist pelo host
     // Se achar, return 1
 
-	FILE *fp, *fq, *fr;
+	FILE *fp, *fq;
 	char line[100];
 	char* result;
-	fp = fopen(WHITE_LIST, "r");
-	fq = fopen(BLACK_LIST, "r");
-	fr = fopen(DENY_TERMS, "r");
+	fp = fopen("resources/whitelist.txt", "r");
+	fq = fopen("resources/blacklist.txt", "r");
 	
 
 	if (fp == NULL)
 		return -1;
 
-	while (fgets(line, 100, fp) != NULL)
-	{
-		result = strstr(line, path);
+	while (fgets(line, 100, fp) != NULL){
+		result = strstr(line, host);
 
 		if (result != NULL)
 			return 1;
@@ -114,9 +112,8 @@ int searchList(char *path,char *buffer)
 	if (fq == NULL)
 		return -1;
 	
-	while (fgets(line, 100, fq) != NULL)
-	{
-		result = strstr(line, path);
+	while (fgets(line, 100, fq) != NULL){
+		result = strstr(line, host);
 
 		if (result != NULL)
 			return 2;
@@ -126,45 +123,64 @@ int searchList(char *path,char *buffer)
 	}
 	fclose(fq);
 
-if (fr == NULL)
-		return -1;
-	
-	while (fgets(line, 100, fq) != NULL)
-	{
-		result = strstr(line, path);
+	return 0;
 
-		if (result != NULL)
-			return 1;
-		
-		if (feof (fr))
-			return 2;
-			break;
-	}
-	fclose(fq);
 
     // Procura no deny terms termos dentro do buffer proibidos
     // Se achar, return 2
     // Se não achar, return 1
-
 }
 
-int filterProxy(char *buffer,char *path,char *method, char *version, char *host){
-	 
-	 switch (host, searchList(path, buffer))
-    {
-        case 1:
-       // msgDest();
-       // logAutorizando();
-       // msgRem();
-            break;
-        case 2:
-       // descarteReq();
-       // msgDestNegando();
-       // logDescartando();
-            break;
-        default:
-        break;
-    }
 
+int filterTerms(char *buffer){
+	FILE *fp;
+	char line[100];
+	char* result;
+	fp = fopen("resources/deny_terms.txt", "r");
+	
+
+	if (fp == NULL)
+		return -1;
+	
+	while (fgets(line, 100, fp) != NULL)
+	{
+		result = strstr(buffer,line);
+
+		if (result != NULL)
+			return 1;
+		
+		if (feof (fp))
+			break;
+	}
+	fclose(fp);
+	
 	return 0;
+}
+
+
+int makeHTTP(char *response, int cod){
+	
+	memset(response,0,BUFFSIZE);
+
+#if HUE == 1
+	strcat(response,"HTTP/1.1 302 Found\r\n");
+	switch(cod){
+		case 401:
+			strcat(response,"Location: https://http.cat/401\r\n");
+			break;
+		case 403: 
+			strcat(response,"Location: https://http.cat/403\r\n");
+			break;
+		case 500:
+			strcat(response,"Location: https://http.cat/500\r\n");
+			break;
+		default:
+			strcat(response,"Location: https://http.cat/418\r\n");
+
+	}
+	strcat(response,"\r\n");
+#else
+
+#endif
+
 }
