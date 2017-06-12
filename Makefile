@@ -5,6 +5,7 @@ RMDIR = rm -rf
 # Comando para remover um arquivo e ignorar caso não exista
 RM = rm -f
 
+MKDIR = mkdir
 # "Flags" para a geração automática das dependências
 DEP_FLAGS = -MT $@ -MMD -MP -MF $(DEP_PATH)/$*.d
 # Diretivas que são utilizadas na compilação de cada objeto
@@ -18,7 +19,7 @@ HEADER_PATH = include
 SRC_PATH = src
 BIN_PATH = bin
 DEP_PATH = dep
-
+CACHE_PATH = resources/cache
 # Uma lista de arquivos para cada tipo de arquivo:
 # .cpp, .o e .d, respectivamente
 CPP_FILES = $(wildcard $(SRC_PATH)/*.c)
@@ -29,10 +30,13 @@ DEP_FILES = $(wildcard $(DEP_PATH)/*.d)
 EXEC = proxy 
 
 # Regra default:
-all: $(EXEC)
+all:$(EXEC)
+
 # Regra de criação do executável final:
 $(EXEC): $(OBJ_FILES)
+	$(MKDIR) $(CACHE_PATH) 
 	$(CC) -o $@ $^ $(LIBS)
+
 
 # Regra de inferência para criação dos objetos de compilação:
 $(BIN_PATH)/%.o: $(SRC_PATH)/%.c 
@@ -54,7 +58,7 @@ release: all
 
 # Regra para limpar/deletar todos os arquivos e diretórios criados pelo make
 clean:
-	$(RMDIR) $(BIN_PATH) $(DEP_PATH)
+	$(RMDIR) $(BIN_PATH) $(DEP_PATH) $(CACHE_PATH)
 	$(RM) $(EXEC)
 
 # Regra que estabelece que arquivos .d são "preciosos"

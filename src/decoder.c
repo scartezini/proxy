@@ -91,8 +91,8 @@ int filterHost(char *host){
 	FILE *fp, *fq;
 	char line[100];
 	char* result;
-	fp = fopen("resources/whitelist.txt", "r");
-	fq = fopen("resources/blacklist.txt", "r");
+	fp = fopen(fp_WHITELIST , "r");
+	fq = fopen(fp_BLACKLIST , "r");
 	
 
 	if (fp == NULL)
@@ -136,33 +136,34 @@ int filterTerms(char *buffer){
 	FILE *fp;
 	char line[100];
 	char* result;
-	fp = fopen("resources/deny_terms.txt", "r");
+	fp = fopen( fp_DENYTERMS, "r");
 	
 
 	if (fp == NULL)
 		return -1;
 	
-	while (fgets(line, 100, fp) != NULL)
-	{
+	while (fgets(line, 100, fp) != NULL){
+		line[strcspn(line, "\n")] = 0;
 		result = strstr(buffer,line);
 
-		if (result != NULL)
+		if (result != NULL){
 			return 1;
+		}
 		
 		if (feof (fp))
 			break;
 	}
+
 	fclose(fp);
-	
 	return 0;
 }
 
 
-int makeHTTP(char *response, int cod){
+void makeHTTP(char *response, int cod){
 	
 	memset(response,0,BUFFSIZE);
 
-#if HUE == 1
+//#if HUE == 1
 	strcat(response,"HTTP/1.1 302 Found\r\n");
 	switch(cod){
 		case 401:
@@ -179,8 +180,53 @@ int makeHTTP(char *response, int cod){
 
 	}
 	strcat(response,"\r\n");
-#else
+//#else
 
-#endif
+//#endif
 
 }
+
+
+void makeReqModified(char* request, char* cache){
+	char *modified, *pch;
+	char date[40];
+
+
+
+	pch = strstr(cache,"Date: ");
+	if(pch == NULL)
+		return;
+	
+	int i,j;
+	for(i=0,j=7; pch[j] != 0 && pch[j] != '\r';i++,j++)
+		date[i] = pch[j];
+	date[i] = 0;
+	
+
+	modified = strstr(request,"\r\n\r\n"); //final do cabeçalho
+
+	if(modified == NULL)
+		return;
+
+	modified = modified + 2;
+
+	
+	strcpy(modified,"If-Modified-Since: ");
+	strcat(modified,date);
+	strcat(modified,"\r\n\r\n");
+}	
+
+int grepHttpCode(char *http){
+	char aux[BUFFSIZE];
+
+	strcpy(aux,http+9); //remove "HTTP/1.1 "
+	aux[3] = 0;
+
+	return atoi(aux);
+}
+
+
+
+
+
+

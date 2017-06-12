@@ -41,7 +41,7 @@ void in_thread(int *sockfd){
 		/* iptr aceita a escuta do cliente */
 		*iptr = accept(*sockfd, (Sockaddr *) &client, &clientlen); 
 		// log inet_ntoa(client.sin_addr);
-		printf("\t\t----- Pedido de: %s -----\n",inet_ntoa(client.sin_addr));
+		//printf("\t\t----- Pedido de: %s -----\n",inet_ntoa(client.sin_addr));
 		/* cria uma thread */
     	pthread_create(&tid, NULL, &start_thread, iptr);
   	}
@@ -63,9 +63,10 @@ void *start_thread(void *arg){
 
 
 void start(int connfd){
-	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE], response[BUFFSIZE];
-	char method[9], version[10], ip[16];
-	int status, filter, n;
+	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE];
+   	char response[BUFFSIZE], file[BUFFSIZE], cache[BUFFSIZE];
+	char method[9], version[10]; 
+	int status, filter, cacheStatus, n;
 
 	memset(buffer,'\0',BUFFSIZE);
 	if((n = recv(connfd,buffer,BUFFSIZE,0)) < 0){
@@ -73,20 +74,55 @@ void start(int connfd){
 		exit(-2);
 	}
 
-	printf("%s",buffer);
 	status = decodeHTTP(buffer,path,method,version,host);
+
 	filter = filterHost(host);
-	
-	if(filter == -1)
+
+	if(filter < 0 || status < 0){ //error
 		makeHTTP(response,500);
-	else if(filter == 2){
+		send(connfd,response,strlen(response),0);
+		return;
+	}
+
+	if(filter == 2){ // blacklist
 		makeHTTP(response,401);
+		send(connfd,response,strlen(response),0);
+		return;
+	}
+	
+
+	fileName(file,host,path,method,version);
+	cacheStatus = inCache(file);
+
+	if(cacheStatus){
+		
+
+		if(readCache(file,cache) < 0){
+			makeHTTP(response,500);
+			send(connfd,response,strlen(response),0);
+			return;
+		}
+
+		makeReqModified(buffer,cache);   //make http req
+		request(buffer,host,response);	
+		
+		int code;
+		code = grepHttpCode(response);
+		if(code == 304) //  304 Not Modified
+			strcpy(response,cache);
+
+		
+
 	}else{
 		request(buffer,host,response);	
-		if(filter != 1){
-			if(filterTerms(response))
-				makeHTTP(response,403);
-		}
+	}	
+
+
+	writeCache(file,response);
+
+	if(filter != 1){ // no whitelist
+		if(filterTerms(response))
+			makeHTTP(response,403);
 	}
 	
 
@@ -98,23 +134,23 @@ void start(int connfd){
 
 int request(char* buffer,char* host, char * response){
 	int servfd;
-	char buf[100];
 	
+	printf("%s",buffer);
 	if((servfd = establishConnection(getHostInfo(host))) == -1){
 		printf("Failed in establishConnection\n");
 		return -1;
 	}
 	
-	//char req[1000];
-	//strcpy(req,"GET / HTTP/1.1\r\nHost: www.unb.br\r\n\r\n");
 	if(send(servfd, buffer, strlen(buffer),0) < 0){
 		printf("Error\n");
 		return -1;
 	}
 	
 	memset(response,0,BUFFSIZE);
-	int size = recv_timeout(servfd,4,response);
+	recv_timeout(servfd,4,response);
 	close(servfd);
+
+	return 0;
 }
 
 
@@ -216,7 +252,6 @@ int recv_timeout(int sockfd, int timeout, char *response){
 			total_size += size_recv;
 			strcat(response,chunk);
 			gettimeofday(&begin, NULL);
-			//printf("chunk %d\n",size_recv);
 		}
 	}
 	

@@ -1,4 +1,3 @@
-
 #include <stdio.h>          /* printf */
 #include <stdlib.h>         /* exit */
 #include <string.h>         /* bzero */
@@ -19,6 +18,7 @@
 #include <sys/types.h>
 
 #include "decoder.h"
+#include "cache.h"  
 
 #define CHUNK_SIZE 512
 #define Sockaddr struct sockaddr
