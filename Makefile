@@ -19,7 +19,7 @@ HEADER_PATH = include
 SRC_PATH = src
 BIN_PATH = bin
 DEP_PATH = dep
-CACHE_PATH = resources/cache
+CACHE_PATH = resources/cache 
 # Uma lista de arquivos para cada tipo de arquivo:
 # .cpp, .o e .d, respectivamente
 CPP_FILES = $(wildcard $(SRC_PATH)/*.c)
@@ -35,7 +35,7 @@ all:$(EXEC)
 # Regra de criação do executável final:
 $(EXEC): $(OBJ_FILES)
 	$(MKDIR) $(CACHE_PATH) 
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS) -ggdb
 
 
 # Regra de inferência para criação dos objetos de compilação:
@@ -58,7 +58,7 @@ release: all
 
 # Regra para limpar/deletar todos os arquivos e diretórios criados pelo make
 clean:
-	$(RMDIR) $(BIN_PATH) $(DEP_PATH) $(CACHE_PATH)
+	$(RMDIR) $(BIN_PATH) $(DEP_PATH) $(CACHE_PATH) 
 	$(RM) $(EXEC)
 
 # Regra que estabelece que arquivos .d são "preciosos"

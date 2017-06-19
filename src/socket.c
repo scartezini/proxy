@@ -36,7 +36,12 @@ void in_thread(int *sockfd){
 	int *iptr;
 	pthread_t tid;
   
-  	while(1){
+	if(pthread_mutex_init(&lock, NULL) != 0){
+		printf("\n mutex init failed\n");
+		exit(-5);
+	}
+
+	while(1){
     	iptr = (int *) malloc(sizeof(int)); 
 		/* iptr aceita a escuta do cliente */
 		*iptr = accept(*sockfd, (Sockaddr *) &client, &clientlen); 
@@ -45,13 +50,15 @@ void in_thread(int *sockfd){
 		/* cria uma thread */
     	pthread_create(&tid, NULL, &start_thread, iptr);
   	}
+	printf("ESPERA AGORA PORRA \n");
+	usleep(60000000);
 	return;
 }
 
 
 void *start_thread(void *arg){
 	int connfd;
-  
+
 	connfd = *((int *) arg);
 	pthread_detach(pthread_self());
 	start(connfd);
@@ -64,7 +71,7 @@ void *start_thread(void *arg){
 
 void start(int connfd){
 	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE];
-   	char response[BUFFSIZE], file[BUFFSIZE], cache[BUFFSIZE];
+   	char response[BUFFSIZE], file[HOSTSIZE],  cache[BUFFSIZE];
 	char method[9], version[10]; 
 	int status, filter, cacheStatus, n;
 
@@ -87,36 +94,23 @@ void start(int connfd){
 	if(filter == 2){ // blacklist
 		makeHTTP(response,401);
 		send(connfd,response,strlen(response),0);
-		return;
+		return ;
 	}
 	
 
 	fileName(file,host,path,method,version);
-	cacheStatus = inCache(file);
 
-	if(cacheStatus){
-		
-
-		if(readCache(file,cache) < 0){
-			makeHTTP(response,500);
-			send(connfd,response,strlen(response),0);
-			return;
-		}
-
+	if(!readCache(file,cache)){
 		makeReqModified(buffer,cache);   //make http req
 		request(buffer,host,response);	
-		
+	
 		int code;
 		code = grepHttpCode(response);
 		if(code == 304) //  304 Not Modified
 			strcpy(response,cache);
-
-		
-
 	}else{
 		request(buffer,host,response);	
-	}	
-
+	}
 
 	writeCache(file,response);
 
@@ -135,7 +129,7 @@ void start(int connfd){
 int request(char* buffer,char* host, char * response){
 	int servfd;
 	
-	printf("%s",buffer);
+	//printf("%s",buffer);
 	if((servfd = establishConnection(getHostInfo(host))) == -1){
 		printf("Failed in establishConnection\n");
 		return -1;

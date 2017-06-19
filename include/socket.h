@@ -12,8 +12,8 @@
 #include <sys/stat.h>       /* lstat() */
 #include <sys/types.h>      /* mode_t */
 #include <netdb.h> 			/* hostent */
-#include<unistd.h>    //usleep
-#include<fcntl.h> //fcntl
+#include <unistd.h>    //usleep
+#include <fcntl.h> //fcntl
 #include <poll.h>          // For poll()
 #include <sys/types.h>
 
@@ -23,6 +23,7 @@
 #define CHUNK_SIZE 512
 #define Sockaddr struct sockaddr
 #define Sockaddr_in struct sockaddr_in
+
 
 int *openSocket(int port);
 
