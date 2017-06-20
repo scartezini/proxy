@@ -1,4 +1,6 @@
 #include "../include/socket.h"
+#include "../include/decoder.h"
+#include "../include/cache.h"  
 
 int *openSocket(int port){
  
@@ -129,7 +131,7 @@ void start(int connfd){
 int request(char* buffer,char* host, char * response){
 	int servfd;
 	
-	//printf("%s",buffer);
+	printf("%s",buffer);
 	if((servfd = establishConnection(getHostInfo(host))) == -1){
 		printf("Failed in establishConnection\n");
 		return -1;

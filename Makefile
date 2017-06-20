@@ -1,5 +1,5 @@
 # Compilador a ser utilizado
-CC = gcc
+CC = g++
 # Comando para remover um diretório recursivamente e ignorar caso não exista
 RMDIR = rm -rf
 # Comando para remover um arquivo e ignorar caso não exista
@@ -9,7 +9,7 @@ MKDIR = mkdir
 # "Flags" para a geração automática das dependências
 DEP_FLAGS = -MT $@ -MMD -MP -MF $(DEP_PATH)/$*.d
 # Diretivas que são utilizadas na compilação de cada objeto
-DIRECTIVES = -c -I $(HEADER_PATH)
+DIRECTIVES = -std=c++11 -c -I $(HEADER_PATH)
 # Diretivas que são utilizadas na "linkagem" dos objetos gerando o executável
 LIBS = -pthread
 
@@ -35,7 +35,7 @@ all:$(EXEC)
 # Regra de criação do executável final:
 $(EXEC): $(OBJ_FILES)
 	$(MKDIR) $(CACHE_PATH) 
-	$(CC) -o $@ $^ $(LIBS) -ggdb
+	$(CC) -o $@ $^ $(LIBS) -std=c++11 -ggdb
 
 
 # Regra de inferência para criação dos objetos de compilação:

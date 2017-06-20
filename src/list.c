@@ -4,6 +4,11 @@
 void insert(List **list, char *url, int max_len){
 	
 	char *pch;
+	
+	if(url == NULL){
+		printf("url NULL\n");
+		getchar();
+	}
 
 	int i, flag = 0;
 	List *ptr;
@@ -14,9 +19,16 @@ void insert(List **list, char *url, int max_len){
 	newNode->next = NULL;
 	newNode->prev = NULL;
 
+	if(*list == NULL ){
+		(*list) =  newNode;
+		return;
+	}
 
-	for(ptr = *list, i=1; ptr->next != NULL; ptr = ptr->next, i++){
-		printf("url: ");
+	for(ptr = *list, i=1;ptr->next != NULL; ptr = ptr->next, i++){
+		if(ptr->url == NULL)
+			removeNode(&ptr);
+
+		printf("URL: ");
 		printf("%s\n",ptr->url);
 		if(!strcmp(ptr->url,url)){
 			pch = strstr(ptr->url,".txt");
@@ -54,7 +66,8 @@ void removeNode(List **list){
 	if((*list)->next != NULL)
 		(*list)->next->prev = (*list)->prev;
 
-//	free((*list)->url);
+	if((*list)->url != NULL)
+		free((*list)->url);
 	free(*list);
 }
 

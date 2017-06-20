@@ -1,3 +1,6 @@
+#ifndef SOCKET_H_
+#define SOCKET_H_
+
 #include <stdio.h>          /* printf */
 #include <stdlib.h>         /* exit */
 #include <string.h>         /* bzero */
@@ -17,8 +20,6 @@
 #include <poll.h>          // For poll()
 #include <sys/types.h>
 
-#include "decoder.h"
-#include "cache.h"  
 
 #define CHUNK_SIZE 512
 #define Sockaddr struct sockaddr
@@ -40,4 +41,6 @@ struct addrinfo * getHostInfo(char *host);
 
 int recv_timeout(int sockfd, int timeout, char *response);
 
+void logMensagem(char *host,char *method, int cod);
 
+#endif

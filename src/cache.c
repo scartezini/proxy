@@ -2,7 +2,7 @@
 
 
 void fileName(char* file,char* host,char* path,char* method, char* version){
-	char pch[HOSTSIZE];
+	char pch[800];
 
 	strcpy(pch,host);
 	strcat(pch,path);
@@ -43,7 +43,14 @@ int writeCache(char* file,char* buffer){
 	fclose(f);
 
 	pthread_mutex_lock(&lock);
-	insert(&cache_first,file,CACHE_SIZE);
+	cache_first.remove(std::string(file));
+	cache_first.push_front(std::string(file));
+
+	if(cache_first.size() > CACHE_SIZE){
+		remove(cache_first.back().c_str());
+		cache_first.pop_back();
+
+	}
 	pthread_mutex_unlock(&lock);
 	return 0;
 }
