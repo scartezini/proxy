@@ -35,7 +35,7 @@ int *openSocket(int port){
 void in_thread(int *sockfd){
 	struct sockaddr_in client; 
 	socklen_t clientlen;
-	int *iptr;
+	struct sockthread *sockthread;
 	pthread_t tid;
   
 	if(pthread_mutex_init(&lock, NULL) != 0){
@@ -44,26 +44,28 @@ void in_thread(int *sockfd){
 	}
 
 	while(1){
-    	iptr = (int *) malloc(sizeof(int)); 
+    	sockthread = (struct sockthread *) malloc(sizeof(struct sockthread)); 
 		/* iptr aceita a escuta do cliente */
-		*iptr = accept(*sockfd, (Sockaddr *) &client, &clientlen); 
+		sockthread->iptr = accept(*sockfd, (Sockaddr *) &client, &clientlen); 
 		// log inet_ntoa(client.sin_addr);
-		//printf("\t\t----- Pedido de: %s -----\n",inet_ntoa(client.sin_addr));
+		strcpy(sockthread->client,inet_ntoa(client.sin_addr));
 		/* cria uma thread */
-    	pthread_create(&tid, NULL, &start_thread, iptr);
+    	pthread_create(&tid, NULL, &start_thread, sockthread);
   	}
-	printf("ESPERA AGORA PORRA \n");
-	usleep(60000000);
 	return;
 }
 
 
 void *start_thread(void *arg){
 	int connfd;
-
-	connfd = *((int *) arg);
+	char client[16];
+	struct sockthread sockthread;
+	
+	sockthread = *((struct sockthread*) arg);
+	connfd = sockthread.iptr;
+	strcpy(client,sockthread.client);
 	pthread_detach(pthread_self());
-	start(connfd);
+	start(connfd,client);
 	close(connfd);
   
 	return NULL;
@@ -71,57 +73,77 @@ void *start_thread(void *arg){
 
 
 
-void start(int connfd){
+void start(int connfd,char *client){
 	char buffer[BUFFSIZE], path[BUFFSIZE],  host[HOSTSIZE];
    	char response[BUFFSIZE], file[HOSTSIZE],  cache[BUFFSIZE];
 	char method[9], version[10]; 
-	int status, filter, cacheStatus, n;
+	int status, filter, n;
 
 	memset(buffer,'\0',BUFFSIZE);
-	if((n = recv(connfd,buffer,BUFFSIZE,0)) < 0){
+	if((n = recv(connfd,buffer,BUFFSIZE,0)) <= 0){
 		printf("Failed in receiver\n");
-		exit(-2);
+		return;
 	}
 
 	status = decodeHTTP(buffer,path,method,version,host);
+	logMessage(client,host,path,method, 0);
 
 	filter = filterHost(host);
 
+	//erro na requisiçaõ retorna avisando um erro
 	if(filter < 0 || status < 0){ //error
-		makeHTTP(response,500);
+		makeHTTP(response,1);
+		logMessage(client,"web-proxy","",NULL, 500);
 		send(connfd,response,strlen(response),0);
 		return;
 	}
 
+	//host esta na blacklist responde uma mensagem informando isso
 	if(filter == 2){ // blacklist
-		makeHTTP(response,401);
+		makeHTTP(response,2);
+		logMessage(client,host,path,"blacklist", 1);
 		send(connfd,response,strlen(response),0);
-		return ;
+		return;
 	}
 	
 
+	//gera o nome da requisição para indentificar em cache
 	fileName(file,host,path,method,version);
 
+	//se estiver e cache ira tratar a pag em cache
 	if(!readCache(file,cache)){
 		makeReqModified(buffer,cache);   //make http req
+		logMessage("web-proxy",host,path,"If-Modified-Since",2);
+
+		//faz uma requisição para verificar em a pag em cache ainda é valida
 		request(buffer,host,response);	
 	
 		int code;
 		code = grepHttpCode(response);
+		logMessage("web-proxy",host,path,NULL,code);
+		//se for valida usar a pag em cache
 		if(code == 304) //  304 Not Modified
 			strcpy(response,cache);
 	}else{
+		//se a pag nao estiver em cache fazer a requisição
 		request(buffer,host,response);	
 	}
-
+	
+	//escrever a pag em cache
 	writeCache(file,response);
 
+	//passar no filtro de termos se nao estiver na whitelist
 	if(filter != 1){ // no whitelist
-		if(filterTerms(response))
-			makeHTTP(response,403);
+		//se nao passar no filtro retornar um erro
+		if(filterTerms(response)){
+			makeHTTP(response,3);
+			logMessage(client,host,path,"whitelist", 1);
+		}
 	}
 	
 
+	logMessage(client,host,path,NULL,grepHttpCode(response));
+	//responde para quem fez a requisição
 	send(connfd,response,strlen(response),0);
 
 	
@@ -131,7 +153,6 @@ void start(int connfd){
 int request(char* buffer,char* host, char * response){
 	int servfd;
 	
-	printf("%s",buffer);
 	if((servfd = establishConnection(getHostInfo(host))) == -1){
 		printf("Failed in establishConnection\n");
 		return -1;
@@ -256,6 +277,57 @@ int recv_timeout(int sockfd, int timeout, char *response){
 
 }
 
+void logMessage(char const *client,char const *host,char const *path, char const  *method, int cod){
+	FILE *fp;
+	fp = fopen("resources/log.txt","a");
+	
+	switch(cod){
+		case 0:
+			printf("r[%s]\t%s\t-\t%s\t%s%s\n", time_system(),client,method,host,path);
+			fprintf(fp, "r[%s]\t%s\t-\t%s\t%s%s\n", time_system(),client,method,host,path);
+			break;
+		case 1:
+			printf("b[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			fprintf(fp, "b[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			break;
+		case 2:
+			printf("c[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			fprintf(fp, "c[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			break;
+		default:
+			printf("h[%s]\t%s%s\t%d\t-\t%s\n",time_system(),host,path,cod,client);
+			fprintf(fp, "h[%s]\t%s%s\t%d\t-\t%s\n",time_system(),host,path,cod,client);
+	}
+
+	fclose(fp);
+}
+
+char* time2string(const struct tm *timeptr){
+	static const char wday_name[][4] = {
+		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+	static const char mon_name[][4] = {
+	    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+	    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	
+	static char result[26];
+	    sprintf(result, "%.3s %.3s%3d %.2d:%.2d:%.2d %d",
+		wday_name[timeptr->tm_wday],
+		mon_name[timeptr->tm_mon],
+		timeptr->tm_mday, timeptr->tm_hour,
+		timeptr->tm_min, timeptr->tm_sec,
+		1900 + timeptr->tm_year);
+	
+	return result;
+}
 
 
+char* time_system(){
+	time_t rawtime;
+	struct tm * timeinfo;
+	
+	time ( &rawtime );
+	timeinfo = localtime ( &rawtime );
 
+	return time2string(timeinfo);
+}

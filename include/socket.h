@@ -25,22 +25,32 @@
 #define Sockaddr struct sockaddr
 #define Sockaddr_in struct sockaddr_in
 
+struct sockthread{
+	int iptr;
+	char client[16];
+};
 
 int *openSocket(int port);
 
 void in_thread(int *sockfd);
 void *start_thread(void *arg);
 
-void start(int connfd);
+//Rotina de tratamento de uma requisição
+void start(int connfd,char* client);
 
+//requisição de uma pagina
 int request(char* buffer,char* host, char* response);
+//transforma uma url em um op
 int dnsResolve(char* host,char* ip);
 
 int establishConnection(struct addrinfo *info);
 struct addrinfo * getHostInfo(char *host);
 
-int recv_timeout(int sockfd, int timeout, char *response);
 
-void logMensagem(char *host,char *method, int cod);
+int recv_timeout(int sockfd, int timeout, char *response);
+void logMessage(char const *client,char const *host,char const *path, char const  *method, int cod);
+
+char* time_system();
+char* time2string(const struct tm *timeptr);
 
 #endif
