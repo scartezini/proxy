@@ -19,11 +19,14 @@
 #include <fcntl.h> //fcntl
 #include <poll.h>          // For poll()
 #include <sys/types.h>
+#include <signal.h>
 
 
 #define CHUNK_SIZE 512
 #define Sockaddr struct sockaddr
 #define Sockaddr_in struct sockaddr_in
+
+static volatile int keepRunning = 1;
 
 struct sockthread{
 	int iptr;
@@ -53,4 +56,6 @@ void logMessage(char const *client,char const *host,char const *path, char const
 char* time_system();
 char* time2string(const struct tm *timeptr);
 
+
+void intHandler(int dummy);
 #endif

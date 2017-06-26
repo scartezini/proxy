@@ -11,6 +11,7 @@
 #include <iostream>
 #include <list>
 
+#define CACHE_FILE "resources/index_cache.txt"
 #define CACHE_SIZE 20
 static pthread_mutex_t lock;
 static std::list<std::string> cache_first; //most recent

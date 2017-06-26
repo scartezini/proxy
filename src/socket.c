@@ -252,7 +252,7 @@ int recv_timeout(int sockfd, int timeout, char *response){
 	gettimeofday(&begin, NULL);
 	memset(response,'\0',BUFFSIZE);
 	
-	while(1){
+	while(keepRunning){
 		gettimeofday(&now, NULL);
 
 		timediff = (now.tv_sec - begin.tv_sec) + 1e-6 * (now.tv_usec - begin.tv_usec);
@@ -331,3 +331,9 @@ char* time_system(){
 
 	return time2string(timeinfo);
 }
+
+
+void intHandler(int dummy) {
+	    keepRunning = 0;
+}
+
