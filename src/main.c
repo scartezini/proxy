@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
 	port = atoi(argv[1]);
 	
 
-	signal(SIGINT, intHandler);
+//	signal(SIGINT, intHandler);
 	
 	//inicia a lista de controle de cache com o que ja ta em cache	
 	FILE *cacheF;

@@ -20,6 +20,8 @@
 #include <poll.h>          // For poll()
 #include <sys/types.h>
 #include <signal.h>
+#include <iostream>
+#include <string>
 
 
 #define CHUNK_SIZE 512

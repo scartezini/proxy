@@ -43,7 +43,7 @@ void in_thread(int *sockfd){
 		exit(-5);
 	}
 
-	while(1){
+	while(keepRunning){
     	sockthread = (struct sockthread *) malloc(sizeof(struct sockthread)); 
 		/* iptr aceita a escuta do cliente */
 		sockthread->iptr = accept(*sockfd, (Sockaddr *) &client, &clientlen); 
@@ -252,7 +252,7 @@ int recv_timeout(int sockfd, int timeout, char *response){
 	gettimeofday(&begin, NULL);
 	memset(response,'\0',BUFFSIZE);
 	
-	while(keepRunning){
+	while(1){
 		gettimeofday(&now, NULL);
 
 		timediff = (now.tv_sec - begin.tv_sec) + 1e-6 * (now.tv_usec - begin.tv_usec);
@@ -334,6 +334,7 @@ char* time_system(){
 
 
 void intHandler(int dummy) {
-	    keepRunning = 0;
+	printf("EXIT!!!");
+	keepRunning = 0;
 }
 
