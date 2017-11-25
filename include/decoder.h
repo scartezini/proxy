@@ -8,7 +8,7 @@
 //#define HUE 1
 #define DEBUG 0
 #define BUFFSIZE 1000000
-#define HOSTSIZE 800
+#define HOSTSIZE 1024
 #define TYPE 16               
 
 #define fp_DENYTERMS "resources/filter/deny_terms.txt"

@@ -147,6 +147,7 @@ int filterTerms(char *buffer){
 		result = strstr(buffer,line);
 
 		if (result != NULL){
+			printf("DENY: %s\n",line);
 			return 1;
 		}
 		
@@ -212,8 +213,6 @@ void makeHTTP(char *response, int cod){
 void makeReqModified(char* request, char* cache){
 	char *modified, *pch;
 	char date[40];
-
-
 
 	pch = strstr(cache,"Date: ");
 	if(pch == NULL)

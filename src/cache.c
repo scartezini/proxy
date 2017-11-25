@@ -32,14 +32,14 @@ int inCache(char* file){
 
 }
 
-int writeCache(char* file,char* buffer){
+int writeCache(char* file,char* buffer,int length){
 	FILE *f;
-	f = fopen(file,"w");
+	f = fopen(file,"wb");
  
 	if(f == NULL)
 		return -1;
 
-	fputs(buffer,f);	
+	fwrite(buffer,length,1,f);	
 	fclose(f);
 
 	pthread_mutex_lock(&lock);
@@ -61,7 +61,7 @@ int readCache(char* file, char* response){
 	FILE *f;
 	unsigned int lSize;
 
-	f = fopen(file,"r");
+	f = fopen(file,"rb");
 	if(f == NULL)
 		return -1;
 
@@ -75,8 +75,7 @@ int readCache(char* file, char* response){
 
 	fclose(f);
 	
-	return 0;
-	
+	return lSize;	
 } 
 
 

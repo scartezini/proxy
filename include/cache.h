@@ -12,7 +12,7 @@
 #include <list>
 
 #define CACHE_FILE "resources/index_cache.txt"
-#define CACHE_SIZE 20
+#define CACHE_SIZE 500
 static pthread_mutex_t lock;
 static std::list<std::string> cache_first; //most recent
 
@@ -21,7 +21,7 @@ void fileName(char* file,char* host,char* path,char* method, char* version);
 //Verifica se o arquivo esta em cache
 int inCache(char* file);
 //Escreve uma pagina em cache
-int writeCache(char* file,char* buffer);
+int writeCache(char* file,char* buffer,int length);
 //Ler um arquivo da cache
 int readCache(char* file, char* response);
 

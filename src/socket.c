@@ -109,42 +109,46 @@ void start(int connfd,char *client){
 
 	//gera o nome da requisição para indentificar em cache
 	fileName(file,host,path,method,version);
-
+	
+	int length;
+	int lSize;
 	//se estiver e cache ira tratar a pag em cache
-	if(!readCache(file,cache)){
+	if(!(lSize = readCache(file,cache))){
 		makeReqModified(buffer,cache);   //make http req
 		logMessage("web-proxy",host,path,"If-Modified-Since",2);
 
 		//faz uma requisição para verificar em a pag em cache ainda é valida
-		request(buffer,host,response);	
+		length = request(buffer,host,response);	
 	
 		int code;
 		code = grepHttpCode(response);
 		logMessage("web-proxy",host,path,NULL,code);
 		//se for valida usar a pag em cache
-		if(code == 304) //  304 Not Modified
-			strcpy(response,cache);
+		if(code == 304) {//  304 Not Modified
+			memcpy(response,cache,lSize);
+			length = lSize;
+		}
 	}else{
 		//se a pag nao estiver em cache fazer a requisição
-		request(buffer,host,response);	
+		length = request(buffer,host,response);	
 	}
 	
 	//escrever a pag em cache
-	writeCache(file,response);
+	writeCache(file,response,length);
 
 	//passar no filtro de termos se nao estiver na whitelist
 	if(filter != 1){ // no whitelist
 		//se nao passar no filtro retornar um erro
 		if(filterTerms(response)){
 			makeHTTP(response,3);
-			logMessage(client,host,path,"whitelist", 1);
+			logMessage(client,host,path,"denyterms", 1);
 		}
 	}
 	
 
 	logMessage(client,host,path,NULL,grepHttpCode(response));
 	//responde para quem fez a requisição
-	send(connfd,response,strlen(response),0);
+	send(connfd,response,length,0);
 
 	
 }
@@ -164,10 +168,10 @@ int request(char* buffer,char* host, char * response){
 	}
 	
 	memset(response,0,BUFFSIZE);
-	recv_timeout(servfd,4,response);
+	int length = recv_timeout(servfd,4,response);
 	close(servfd);
 
-	return 0;
+	return length;
 }
 
 
@@ -227,10 +231,14 @@ struct addrinfo *getHostInfo(char *host){
 	int r;
 	struct addrinfo hints, *host_addrinfo;
 
-
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;    /*  For wildcard IP address */
+	hints.ai_protocol = 0;          /*  Any protocol */
+	hints.ai_canonname = NULL;
+	hints.ai_addr = NULL;
+	hints.ai_next = NULL;	 
 	if((r = getaddrinfo(host,"80",&hints,&host_addrinfo))){
 		return NULL;
 	}
@@ -260,14 +268,14 @@ int recv_timeout(int sockfd, int timeout, char *response){
 		if(total_size > 0 && timediff > timeout)
 			break;
 		else if(timediff > timeout*2)
-		   break;	
+			break;	
 
 		memset(chunk, '\0', CHUNK_SIZE);
 		if((size_recv = recv(sockfd, chunk, CHUNK_SIZE,0)) <= 0)
 			usleep(100000);
 		else{
+			memcpy(response + total_size, chunk, size_recv);
 			total_size += size_recv;
-			strcat(response,chunk);
 			gettimeofday(&begin, NULL);
 		}
 	}
@@ -283,19 +291,19 @@ void logMessage(char const *client,char const *host,char const *path, char const
 	
 	switch(cod){
 		case 0:
-			printf("r[%s]\t%s\t-\t%s\t%s%s\n", time_system(),client,method,host,path);
+			printf("\033[44mr[%s]\t%s\t-\t%s\t%s%s\033[0m\n", time_system(),client,method,host,path);
 			fprintf(fp, "r[%s]\t%s\t-\t%s\t%s%s\n", time_system(),client,method,host,path);
 			break;
 		case 1:
-			printf("b[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			printf("\033[41;30mb[%s]\t%s\t-\t%s%s\t-\t%s\033[0m\n", time_system(),client,host,path,method);
 			fprintf(fp, "b[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
 			break;
 		case 2:
-			printf("c[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
+			printf("\033[42mc[%s]\t%s\t-\t%s%s\t-\t%s\033[0m\n", time_system(),client,host,path,method);
 			fprintf(fp, "c[%s]\t%s\t-\t%s%s\t-\t%s\n", time_system(),client,host,path,method);
 			break;
 		default:
-			printf("h[%s]\t%s%s\t%d\t-\t%s\n",time_system(),host,path,cod,client);
+			printf("\033[43mh[%s]\t%s%s\t%d\t-\t%s\033[0m\n",time_system(),host,path,cod,client);
 			fprintf(fp, "h[%s]\t%s%s\t%d\t-\t%s\n",time_system(),host,path,cod,client);
 	}
 

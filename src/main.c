@@ -3,7 +3,7 @@
 #include "../include/cache.h"  
 
 
-#define MAXPENDING 20             
+#define MAXPENDING 10
 
 int main(int argc, char *argv[]){
 
