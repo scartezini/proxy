@@ -59,7 +59,7 @@ int decodeHTTP(char *buffer,char *path,char *method, char *version, char *host){
 	  newBuffer[l] = buffer[k];
 	newBuffer[l] = '\0';
 
-	strcpy(buffer,newBuffer);
+	strncpy(buffer,newBuffer,BUFFSIZE);
 
 #if DEBUG == 1
 	printf("method: %s\n",method);

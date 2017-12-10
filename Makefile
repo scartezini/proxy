@@ -9,9 +9,11 @@ MKDIR = mkdir
 # "Flags" para a geração automática das dependências
 DEP_FLAGS = -MT $@ -MMD -MP -MF $(DEP_PATH)/$*.d
 # Diretivas que são utilizadas na compilação de cada objeto
-DIRECTIVES = -std=c++11 -c -I $(HEADER_PATH)
+DIRECTIVES = -std=c++11 -c -I $(HEADER_PATH) `pkg-config --cflags --libs gtk+-2.0`
+
 # Diretivas que são utilizadas na "linkagem" dos objetos gerando o executável
-LIBS = -pthread
+LIBS = -pthread `pkg-config --cflags --libs gtk+-2.0`
+
 
 # Um caminho para guardar e acessar cada tipo de arquivo: .h (headers),
 # .cpp (sources), .o (objects) e .d (dependencies), respectivamente
@@ -34,9 +36,8 @@ all:$(EXEC)
 
 # Regra de criação do executável final:
 $(EXEC): $(OBJ_FILES)
-	$(MKDIR) $(CACHE_PATH) 
-	$(CC) -o $@ $^ $(LIBS) -std=c++11 -ggdb
-
+	@mkdir -p $(CACHE_PATH) 
+	$(CC) -o $@ $^ $(LIBS) 
 
 # Regra de inferência para criação dos objetos de compilação:
 $(BIN_PATH)/%.o: $(SRC_PATH)/%.c 

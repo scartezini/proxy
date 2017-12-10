@@ -1,6 +1,4 @@
 #include "../include/socket.h"
-#include "../include/decoder.h"
-#include "../include/cache.h"  
 
 int *openSocket(int port){
  
@@ -32,16 +30,13 @@ int *openSocket(int port){
 }
 
 
-void in_thread(int *sockfd){
+void in_thread(int *sockfd, bool b){
+	inspec = b;
 	struct sockaddr_in client; 
 	socklen_t clientlen;
 	struct sockthread *sockthread;
 	pthread_t tid;
   
-	if(pthread_mutex_init(&lock, NULL) != 0){
-		printf("\n mutex init failed\n");
-		exit(-5);
-	}
 
 	while(keepRunning){
     	sockthread = (struct sockthread *) malloc(sizeof(struct sockthread)); 
@@ -78,12 +73,38 @@ void start(int connfd,char *client){
    	char response[BUFFSIZE], file[HOSTSIZE],  cache[BUFFSIZE];
 	char method[9], version[10]; 
 	int status, filter, n;
+	unsigned int lSize;
+	FILE *f;
 
 	memset(buffer,'\0',BUFFSIZE);
 	if((n = recv(connfd,buffer,BUFFSIZE,0)) <= 0){
 		printf("Failed in receiver\n");
 		return;
 	}
+
+	if(inspec) {
+		pthread_mutex_lock(&recv_lock);
+
+		loadBufferRecv(buffer,n);
+
+		f = fopen(".tmp_recv","rb");
+		if(f == NULL)
+			return;
+
+		fseek(f,0,SEEK_END);
+		lSize = ftell(f);
+		rewind(f);
+
+		if(fread(buffer,1,lSize,f) != lSize)
+			return;
+
+		//printf("\n----\n%s\n---\n",buffer);
+		fclose(f);
+
+		pthread_mutex_unlock(&recv_lock);
+		//shared_buffer atualizou o buffer
+	}
+
 
 	status = decodeHTTP(buffer,path,method,version,host);
 	logMessage(client,host,path,method, 0);
@@ -111,7 +132,7 @@ void start(int connfd,char *client){
 	fileName(file,host,path,method,version);
 	
 	int length;
-	int lSize;
+	lSize = 0;
 	//se estiver e cache ira tratar a pag em cache
 	if(!(lSize = readCache(file,cache))){
 		makeReqModified(buffer,cache);   //make http req
@@ -146,11 +167,46 @@ void start(int connfd,char *client){
 	}
 	
 
+	if(inspec) {	
+		char *body, header[BUFFSIZE];
+		int bodyLen;
+
+		body = strstr(response,"\r\n\r\n");
+		if(body == NULL)
+			return;
+
+		memcpy(header,response,body-response);
+		header[body-response+1] = '\0';
+		
+		bodyLen	= length - (body-response);
+
+		pthread_mutex_lock(&resp_lock);
+		loadBufferResp(header,length - bodyLen);
+
+		f = fopen(".tmp_resp","rb");
+		if(f == NULL)
+			return;
+
+		fseek(f,0,SEEK_END);
+		lSize = ftell(f);
+		rewind(f);
+
+		if(fread(response,1,lSize,f) != lSize)
+			return;
+
+		//printf("\n----\n%s\n---\n",response);
+		fclose(f);
+
+		memmove(response + lSize ,body, bodyLen);	
+		pthread_mutex_unlock(&resp_lock);
+
+		length = lSize + bodyLen;
+
+	}
+
 	logMessage(client,host,path,NULL,grepHttpCode(response));
 	//responde para quem fez a requisição
 	send(connfd,response,length,0);
-
-	
 }
 
 

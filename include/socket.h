@@ -23,12 +23,18 @@
 #include <iostream>
 #include <string>
 
+#include "ui.h"
+#include "decoder.h"
+#include "cache.h"  
 
 #define CHUNK_SIZE 512
 #define Sockaddr struct sockaddr
 #define Sockaddr_in struct sockaddr_in
 
 static volatile int keepRunning = 1;
+static volatile bool inspec = false;
+static pthread_mutex_t recv_lock;
+static pthread_mutex_t resp_lock;
 
 struct sockthread{
 	int iptr;
@@ -37,7 +43,7 @@ struct sockthread{
 
 int *openSocket(int port);
 
-void in_thread(int *sockfd);
+void in_thread(int *sockfd,bool);
 void *start_thread(void *arg);
 
 //Rotina de tratamento de uma requisição

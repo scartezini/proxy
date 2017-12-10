@@ -55,3 +55,6 @@ dkms.conf
 
 resources/cache/*
 resources/log.txt
+
+.*
+*.pdf
