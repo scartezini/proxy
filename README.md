@@ -11,7 +11,7 @@ make
 ### Execução
 
 ```
-./proxy <numero da porta de acesso
+./proxy <numero da porta de acesso>
 ```
 
 ### Log
